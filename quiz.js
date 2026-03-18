@@ -59,12 +59,7 @@ async function nextRound() {
   overlay.style.display = "flex";
 
   try {
-    // fetch structure info from API to get latest version URL
-    const apiResp = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${currentProtein.id}`);
-    if (!apiResp.ok) throw new Error("API HTTP " + apiResp.status);
-    const apiData = await apiResp.json();
-    const pdbUrl = apiData[0].pdbUrl;
-
+    const pdbUrl = `pdb/${currentProtein.id}.pdb`;
     const resp = await fetch(pdbUrl);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const pdb = await resp.text();

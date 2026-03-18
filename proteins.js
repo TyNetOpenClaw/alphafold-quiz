@@ -11,7 +11,6 @@ const PROTEINS = [
   { id: "P05067", name: "Amyloid-beta precursor (APP)", desc: "Transmembrane protein whose cleavage produces amyloid-beta peptides, central to Alzheimer's disease." },
   { id: "P06213", name: "Insulin receptor", desc: "Receptor tyrosine kinase. Binds insulin to initiate signaling cascades for glucose uptake." },
   { id: "P38398", name: "BRCA1", desc: "DNA repair protein. Mutations dramatically increase breast and ovarian cancer risk." },
-  { id: "P51587", name: "BRCA2", desc: "DNA repair protein involved in homologous recombination. Key tumor suppressor." },
   { id: "P04150", name: "Glucocorticoid receptor (NR3C1)", desc: "Nuclear receptor activated by cortisol. Regulates genes involved in metabolism and immunity." },
   { id: "P00533", name: "EGFR", desc: "Epidermal growth factor receptor. Oncogene targeted by multiple cancer drugs." },
   { id: "P08069", name: "IGF-1 receptor", desc: "Receptor for insulin-like growth factor. Promotes cell growth and survival." },
