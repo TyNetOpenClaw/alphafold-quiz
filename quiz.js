@@ -46,20 +46,43 @@ async function nextRound() {
   // pick a random protein
   currentProtein = pickRandom(PROTEINS);
 
-  // pick 3 wrong options
-  const others = PROTEINS.filter(p => p.id !== currentProtein.id);
-  options = shuffle([currentProtein, ...shuffle(others).slice(0, 3)]);
+  // pick 3 wrong options, preferring different categories for clarity
+  const sameCat = PROTEINS.filter(p => p.id !== currentProtein.id && p.cat === currentProtein.cat);
+  const diffCat = PROTEINS.filter(p => p.id !== currentProtein.id && p.cat !== currentProtein.cat);
+  // mix: 1 from same category, 2 from different (makes it challenging but not impossible)
+  const wrongPool = shuffle([...shuffle(sameCat).slice(0, 1), ...shuffle(diffCat).slice(0, 2)]).slice(0, 3);
+  // if not enough same-cat, fill from others
+  while (wrongPool.length < 3) {
+    const pick = pickRandom(PROTEINS.filter(p => p.id !== currentProtein.id && !wrongPool.includes(p)));
+    if (pick) wrongPool.push(pick);
+  }
+  options = shuffle([currentProtein, ...wrongPool]);
 
   // update info bar
   document.getElementById("uniprot-id").textContent = "UniProt: " + currentProtein.id;
   document.getElementById("residue-count").textContent = "Loading…";
+  document.getElementById("protein-category").textContent = currentProtein.category;
+
+  // show hints
+  document.getElementById("hint-function").textContent = "💡 " + currentProtein.desc;
+  const nameHint = currentProtein.name.split("").map((ch, i) => {
+    if (i === 0) return ch;
+    if (ch === " " || ch === "-" || ch === "(" || ch === ")") return ch;
+    return "_";
+  }).join(" ");
+  document.getElementById("hint-letters").textContent = "Name: " + nameHint;
 
   // load structure
   const overlay = document.getElementById("loading-overlay");
   overlay.style.display = "flex";
 
   try {
-    const pdbUrl = `pdb/${currentProtein.id}.pdb`;
+    // fetch structure info from API to get latest version URL
+    const apiResp = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${currentProtein.id}`);
+    if (!apiResp.ok) throw new Error("API HTTP " + apiResp.status);
+    const apiData = await apiResp.json();
+    const pdbUrl = apiData[0].pdbUrl;
+
     const resp = await fetch(pdbUrl);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const pdb = await resp.text();
