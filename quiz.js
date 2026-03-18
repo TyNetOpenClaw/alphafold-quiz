@@ -29,6 +29,37 @@ function resetGame() {
   nextRound();
 }
 
+const CAT_HINTS = {
+  "Receptor": "Membrane receptor involved in signal transduction.",
+  "Kinase": "Enzyme that transfers phosphate groups.",
+  "Tumor suppressor": "Protein that prevents uncontrolled cell growth.",
+  "Oncogene": "Protein that can drive cancer when mutated.",
+  "Cytokine": "Signaling molecule of the immune system.",
+  "Growth factor": "Stimulates cell growth or differentiation.",
+  "Transcription factor": "Regulates gene expression by binding DNA.",
+  "Chaperone": "Helps other proteins fold correctly.",
+  "Enzyme": "Catalyzes biochemical reactions.",
+  "Apoptosis regulator": "Controls programmed cell death.",
+  "Coagulation": "Involved in the blood clotting cascade.",
+  "Nuclear receptor": "Receptor that works inside the nucleus.",
+  "Transport": "Moves molecules through the body.",
+  "Adhesion": "Mediates cell-cell or cell-matrix attachment.",
+  "Signaling": "Transduces signals within or between cells.",
+  "Immune system": "Part of host defense against pathogens.",
+  "Ion channel": "Forms pores for ion transport across membranes.",
+  "Epigenetic reader": "Recognizes chemical marks on DNA or histones.",
+  "Epigenetic modifier": "Adds or removes marks on chromatin.",
+  "Hormone": "Chemical messenger in the bloodstream.",
+  "Membrane protein": "Embedded in cell membranes.",
+  "Protease inhibitor": "Blocks protease activity.",
+  "Lipid transport": "Moves lipids between tissues.",
+  "Chemokine": "Attracts immune cells to inflammation sites.",
+  "Acute phase protein": "Levels change during inflammation.",
+  "E3 ligase": "Tags proteins for degradation via ubiquitin.",
+  "Structural protein": "Provides mechanical support to cells/tissues.",
+  "GTPase": "Molecular switch cycling between active/inactive states.",
+};
+
 async function nextRound() {
   if (rounds >= maxRounds) {
     showFinalScore();
@@ -46,20 +77,31 @@ async function nextRound() {
   // pick a random protein
   currentProtein = pickRandom(PROTEINS);
 
-  // pick 3 wrong options
-  const others = PROTEINS.filter(p => p.id !== currentProtein.id);
-  options = shuffle([currentProtein, ...shuffle(others).slice(0, 3)]);
+  // pick wrong options: prefer same category for harder picks
+  const sameCat = shuffle(PROTEINS.filter(p => p.id !== currentProtein.id && p.cat === currentProtein.cat));
+  const diffCat = shuffle(PROTEINS.filter(p => p.id !== currentProtein.id && p.cat !== currentProtein.cat));
+  const wrongs = [...sameCat.slice(0, 2), ...diffCat.slice(0, 2)].slice(0, 3);
+  options = shuffle([currentProtein, ...wrongs]);
 
   // update info bar
   document.getElementById("uniprot-id").textContent = "UniProt: " + currentProtein.id;
   document.getElementById("residue-count").textContent = "Loading…";
+  document.getElementById("protein-category").textContent = currentProtein.cat;
 
-  // load structure
+  // category-based hint (vague)
+  document.getElementById("hint-function").textContent = CAT_HINTS[currentProtein.cat] || "A human protein with known predicted structure.";
+  document.getElementById("hint-letters").textContent = "";
+
+  // load structure from AlphaFold API
   const overlay = document.getElementById("loading-overlay");
   overlay.style.display = "flex";
 
   try {
-    const pdbUrl = `pdb/${currentProtein.id}.pdb`;
+    const apiResp = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${currentProtein.id}`);
+    if (!apiResp.ok) throw new Error("API HTTP " + apiResp.status);
+    const apiData = await apiResp.json();
+    const pdbUrl = apiData[0].pdbUrl;
+
     const resp = await fetch(pdbUrl);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const pdb = await resp.text();
@@ -67,7 +109,6 @@ async function nextRound() {
     viewer.removeAllModels();
     viewer.addModel(pdb, "pdb");
 
-    // color by secondary structure - cartoon with coloring
     viewer.setStyle({}, {
       cartoon: {
         color: "spectrum",
@@ -112,7 +153,7 @@ async function nextRound() {
 function selectAnswer(idx, btn) {
   if (answered) return;
   answered = true;
-  viewer.spin("y", 0); // stop spinning
+  viewer.spin("y", 0);
 
   const correct = options[idx] === currentProtein;
   const buttons = document.querySelectorAll(".opt-btn");
@@ -168,5 +209,4 @@ function showFinalScore() {
   document.getElementById("new-btn").style.display = "";
 }
 
-// init on load
 document.addEventListener("DOMContentLoaded", init);
